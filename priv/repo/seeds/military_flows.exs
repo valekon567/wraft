@@ -30,45 +30,33 @@ defmodule WraftDoc.Seeds.MilitaryFlows do
     # Створюємо стани процесу
     states = [
       %{
-        name: "Проект",
-        state: "draft",
-        order: 1,
-        colour: "#9E9E9E"
+        state: "Проект",
+        order: 1
       },
       %{
-        name: "Погодження S1",
-        state: "review",
-        order: 2,
-        colour: "#4ECDC4"
+        state: "Погодження S1",
+        order: 2
       },
       %{
-        name: "Погодження S3",
-        state: "review",
-        order: 3,
-        colour: "#4ECDC4"
+        state: "Погодження S3",
+        order: 3
       },
       %{
-        name: "Затвердження начальником штабу",
-        state: "approval",
-        order: 4,
-        colour: "#FFD93D"
+        state: "Затвердження начальником штабу",
+        order: 4
       },
       %{
-        name: "Підпис командира",
-        state: "approval",
-        order: 5,
-        colour: "#FF6B6B"
+        state: "Підпис командира",
+        order: 5
       },
       %{
-        name: "Затверджено",
-        state: "approved",
-        order: 6,
-        colour: "#6BCF7F"
+        state: "Затверджено",
+        order: 6
       }
     ]
 
     Enum.map(states, fn state_attrs ->
-      case Repo.get_by(State, name: state_attrs.name, flow_id: flow.id) do
+      case Repo.get_by(State, state: state_attrs.state, flow_id: flow.id) do
         nil ->
           %State{}
           |> State.changeset(
@@ -109,27 +97,21 @@ defmodule WraftDoc.Seeds.MilitaryFlows do
 
     states = [
       %{
-        name: "Створено",
-        state: "draft",
-        order: 1,
-        colour: "#9E9E9E"
+        state: "Створено",
+        order: 1
       },
       %{
-        name: "На розгляді",
-        state: "review",
-        order: 2,
-        colour: "#4ECDC4"
+        state: "На розгляді",
+        order: 2
       },
       %{
-        name: "Виконано",
-        state: "approved",
-        order: 3,
-        colour: "#6BCF7F"
+        state: "Виконано",
+        order: 3
       }
     ]
 
     Enum.map(states, fn state_attrs ->
-      case Repo.get_by(State, name: state_attrs.name, flow_id: flow.id) do
+      case Repo.get_by(State, state: state_attrs.state, flow_id: flow.id) do
         nil ->
           %State{}
           |> State.changeset(

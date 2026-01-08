@@ -12,10 +12,10 @@ defmodule WraftDoc.Seeds.MilitaryContentTypes do
   @doc """
   Створює всі типи військових документів.
   """
-  def seed(organisation_id, creator_id, flow_id \\ nil) do
+  def seed(organisation_id, creator_id, flow_id, layout_id, theme_id) do
     # Отримуємо типи полів
+    string_type = Repo.get_by(FieldType, name: "String")
     text_type = Repo.get_by(FieldType, name: "Text")
-    textarea_type = Repo.get_by(FieldType, name: "Textarea")
     date_type = Repo.get_by(FieldType, name: "Date")
 
     content_types = [
@@ -23,57 +23,63 @@ defmodule WraftDoc.Seeds.MilitaryContentTypes do
         name: "Наказ по частині",
         description: "Наказ командира військової частини",
         prefix: "НАК",
-        colour: "#FF6B6B",
+        color: "#FF6B6B",
         organisation_id: organisation_id,
         creator_id: creator_id,
         flow_id: flow_id,
+        layout_id: layout_id,
+        theme_id: theme_id,
         fields: [
-          %{name: "Номер наказу", field_type_id: text_type.id, required: true},
+          %{name: "Номер наказу", field_type_id: string_type.id, required: true},
           %{name: "Дата наказу", field_type_id: date_type.id, required: true},
-          %{name: "Назва наказу", field_type_id: text_type.id, required: true},
-          %{name: "Зміст наказу", field_type_id: textarea_type.id, required: true},
-          %{name: "Виконавець", field_type_id: text_type.id, required: true},
-          %{name: "Підстава", field_type_id: textarea_type.id, required: false},
-          %{name: "Номер частини", field_type_id: text_type.id, required: true},
-          %{name: "Місто", field_type_id: text_type.id, required: true},
-          %{name: "Звання командира", field_type_id: text_type.id, required: true},
-          %{name: "ПІБ командира", field_type_id: text_type.id, required: true},
-          %{name: "Звання начальника штабу", field_type_id: text_type.id, required: true},
-          %{name: "ПІБ начальника штабу", field_type_id: text_type.id, required: true}
+          %{name: "Назва наказу", field_type_id: string_type.id, required: true},
+          %{name: "Зміст наказу", field_type_id: text_type.id, required: true},
+          %{name: "Виконавець", field_type_id: string_type.id, required: true},
+          %{name: "Підстава", field_type_id: text_type.id, required: false},
+          %{name: "Номер частини", field_type_id: string_type.id, required: true},
+          %{name: "Місто", field_type_id: string_type.id, required: true},
+          %{name: "Звання командира", field_type_id: string_type.id, required: true},
+          %{name: "ПІБ командира", field_type_id: string_type.id, required: true},
+          %{name: "Звання начальника штабу", field_type_id: string_type.id, required: true},
+          %{name: "ПІБ начальника штабу", field_type_id: string_type.id, required: true}
         ]
       },
       %{
         name: "Службова записка",
         description: "Службова записка між підрозділами",
         prefix: "СЗ",
-        colour: "#4ECDC4",
+        color: "#4ECDC4",
         organisation_id: organisation_id,
         creator_id: creator_id,
         flow_id: flow_id,
+        layout_id: layout_id,
+        theme_id: theme_id,
         fields: [
-          %{name: "Від кого (посада)", field_type_id: text_type.id, required: true},
-          %{name: "Кому (посада)", field_type_id: text_type.id, required: true},
+          %{name: "Від кого (посада)", field_type_id: string_type.id, required: true},
+          %{name: "Кому (посада)", field_type_id: string_type.id, required: true},
           %{name: "Дата", field_type_id: date_type.id, required: true},
-          %{name: "Тема", field_type_id: text_type.id, required: true},
-          %{name: "Зміст", field_type_id: textarea_type.id, required: true},
-          %{name: "Звання відправника", field_type_id: text_type.id, required: true},
-          %{name: "ПІБ відправника", field_type_id: text_type.id, required: true}
+          %{name: "Тема", field_type_id: string_type.id, required: true},
+          %{name: "Зміст", field_type_id: text_type.id, required: true},
+          %{name: "Звання відправника", field_type_id: string_type.id, required: true},
+          %{name: "ПІБ відправника", field_type_id: string_type.id, required: true}
         ]
       },
       %{
         name: "Рапорт",
         description: "Рапорт військовослужбовця",
         prefix: "РАП",
-        colour: "#95E1D3",
+        color: "#95E1D3",
         organisation_id: organisation_id,
         creator_id: creator_id,
         flow_id: flow_id,
+        layout_id: layout_id,
+        theme_id: theme_id,
         fields: [
-          %{name: "ПІБ військовослужбовця", field_type_id: text_type.id, required: true},
-          %{name: "Звання", field_type_id: text_type.id, required: true},
-          %{name: "Підрозділ", field_type_id: text_type.id, required: true},
-          %{name: "Тема рапорту", field_type_id: text_type.id, required: true},
-          %{name: "Зміст рапорту", field_type_id: textarea_type.id, required: true},
+          %{name: "ПІБ військовослужбовця", field_type_id: string_type.id, required: true},
+          %{name: "Звання", field_type_id: string_type.id, required: true},
+          %{name: "Підрозділ", field_type_id: string_type.id, required: true},
+          %{name: "Тема рапорту", field_type_id: string_type.id, required: true},
+          %{name: "Зміст рапорту", field_type_id: text_type.id, required: true},
           %{name: "Дата", field_type_id: date_type.id, required: true}
         ]
       },
@@ -81,52 +87,58 @@ defmodule WraftDoc.Seeds.MilitaryContentTypes do
         name: "Звіт",
         description: "Звіт підрозділу або виконавця",
         prefix: "ЗВТ",
-        colour: "#F38181",
+        color: "#F38181",
         organisation_id: organisation_id,
         creator_id: creator_id,
         flow_id: flow_id,
+        layout_id: layout_id,
+        theme_id: theme_id,
         fields: [
-          %{name: "Тип звіту", field_type_id: text_type.id, required: true},
+          %{name: "Тип звіту", field_type_id: string_type.id, required: true},
           %{name: "Період (з)", field_type_id: date_type.id, required: true},
           %{name: "Період (по)", field_type_id: date_type.id, required: true},
-          %{name: "Підрозділ", field_type_id: text_type.id, required: true},
-          %{name: "Дані звіту", field_type_id: textarea_type.id, required: true},
-          %{name: "Виконавець", field_type_id: text_type.id, required: true}
+          %{name: "Підрозділ", field_type_id: string_type.id, required: true},
+          %{name: "Дані звіту", field_type_id: text_type.id, required: true},
+          %{name: "Виконавець", field_type_id: string_type.id, required: true}
         ]
       },
       %{
         name: "Вихідний лист",
         description: "Вихідна кореспонденція",
         prefix: "ВИХ",
-        colour: "#AA96DA",
+        color: "#AA96DA",
         organisation_id: organisation_id,
         creator_id: creator_id,
         flow_id: flow_id,
+        layout_id: layout_id,
+        theme_id: theme_id,
         fields: [
-          %{name: "Адресат", field_type_id: text_type.id, required: true},
-          %{name: "Тема", field_type_id: text_type.id, required: true},
-          %{name: "Зміст листа", field_type_id: textarea_type.id, required: true},
-          %{name: "Додатки", field_type_id: text_type.id, required: false},
+          %{name: "Адресат", field_type_id: string_type.id, required: true},
+          %{name: "Тема", field_type_id: string_type.id, required: true},
+          %{name: "Зміст листа", field_type_id: text_type.id, required: true},
+          %{name: "Додатки", field_type_id: string_type.id, required: false},
           %{name: "Дата", field_type_id: date_type.id, required: true},
-          %{name: "Виконавець", field_type_id: text_type.id, required: true}
+          %{name: "Виконавець", field_type_id: string_type.id, required: true}
         ]
       },
       %{
         name: "Вхідний лист",
         description: "Вхідна кореспонденція",
         prefix: "ВХ",
-        colour: "#FCBAD3",
+        color: "#FCBAD3",
         organisation_id: organisation_id,
         creator_id: creator_id,
         flow_id: flow_id,
+        layout_id: layout_id,
+        theme_id: theme_id,
         fields: [
-          %{name: "Відправник", field_type_id: text_type.id, required: true},
-          %{name: "Вхідний номер", field_type_id: text_type.id, required: true},
+          %{name: "Відправник", field_type_id: string_type.id, required: true},
+          %{name: "Вхідний номер", field_type_id: string_type.id, required: true},
           %{name: "Дата отримання", field_type_id: date_type.id, required: true},
-          %{name: "Тема", field_type_id: text_type.id, required: true},
-          %{name: "Зміст листа", field_type_id: textarea_type.id, required: true},
-          %{name: "Резолюція", field_type_id: textarea_type.id, required: false},
-          %{name: "Відповідальний", field_type_id: text_type.id, required: false}
+          %{name: "Тема", field_type_id: string_type.id, required: true},
+          %{name: "Зміст листа", field_type_id: text_type.id, required: true},
+          %{name: "Резолюція", field_type_id: text_type.id, required: false},
+          %{name: "Відповідальний", field_type_id: string_type.id, required: false}
         ]
       }
     ]
@@ -158,12 +170,12 @@ defmodule WraftDoc.Seeds.MilitaryContentTypes do
                ) do
             nil ->
               %Field{}
-              |> Field.changeset(
-                Map.merge(field_data, %{
-                  organisation_id: organisation_id,
-                  creator_id: creator_id
-                })
-              )
+              |> Field.changeset(%{
+                name: field_data.name,
+                field_type_id: field_data.field_type_id,
+                organisation_id: organisation_id,
+                meta: %{}
+              })
               |> Repo.insert!()
 
             existing ->

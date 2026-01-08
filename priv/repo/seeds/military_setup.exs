@@ -12,11 +12,14 @@ defmodule WraftDoc.Seeds.MilitarySetup do
   alias WraftDoc.Account.User
   alias WraftDoc.Account.UserOrganisation
   alias WraftDoc.Account.UserRole
+  alias WraftDoc.Documents.Engine
   alias WraftDoc.Enterprise
   alias WraftDoc.Enterprise.Organisation
+  alias WraftDoc.Layouts.Layout
   alias WraftDoc.Military
   alias WraftDoc.Military.Subdivision
   alias WraftDoc.Repo
+  alias WraftDoc.Themes.Theme
 
   require Logger
 
@@ -45,9 +48,18 @@ defmodule WraftDoc.Seeds.MilitarySetup do
     simple_flow = WraftDoc.Seeds.MilitaryFlows.seed_simple_flow(organisation.id, admin_user.id)
     Logger.info("✅ Створено workflow процеси")
 
+    # 4.1 Створюємо або отримуємо layout та theme
+    {layout, theme} = ensure_layout_and_theme(organisation.id, admin_user.id)
+
     # 5. Створюємо типи документів
     content_types =
-      WraftDoc.Seeds.MilitaryContentTypes.seed(organisation.id, admin_user.id, order_flow.id)
+      WraftDoc.Seeds.MilitaryContentTypes.seed(
+        organisation.id,
+        admin_user.id,
+        order_flow.id,
+        layout.id,
+        theme.id
+      )
 
     Logger.info("✅ Створено #{length(content_types)} типів документів")
 
@@ -81,10 +93,11 @@ defmodule WraftDoc.Seeds.MilitarySetup do
       case Repo.get_by(User, email: "commander@military.local") do
         nil ->
           %User{}
-          |> User.changeset(%{
+          |> User.guest_user_changeset(%{
             name: "Командир частини",
             email: "commander@military.local",
-            encrypted_password: Bcrypt.hash_pwd_salt("Military2025!"),
+            password: "Military2025!",
+            is_guest: false,
             email_verify: true
           })
           |> Repo.insert!()
@@ -249,10 +262,11 @@ defmodule WraftDoc.Seeds.MilitarySetup do
         case Repo.get_by(User, email: user_data.email) do
           nil ->
             %User{}
-            |> User.changeset(%{
+            |> User.guest_user_changeset(%{
               name: user_data.name,
               email: user_data.email,
-              encrypted_password: Bcrypt.hash_pwd_salt("Military2025!"),
+              password: "Military2025!",
+              is_guest: false,
               email_verify: true
             })
             |> Repo.insert!()
@@ -298,6 +312,68 @@ defmodule WraftDoc.Seeds.MilitarySetup do
 
       user
     end)
+  end
+
+  defp ensure_layout_and_theme(organisation_id, creator_id) do
+    # Отримуємо або створюємо двигун
+    engine =
+      case Repo.get_by(Engine, name: "pandoc") do
+        nil ->
+          %Engine{}
+          |> Engine.changeset(%{
+            name: "pandoc",
+            api_route: "pandoc"
+          })
+          |> Repo.insert!()
+
+        existing ->
+          existing
+      end
+
+    # Створюємо або отримуємо layout
+    layout =
+      case Repo.get_by(Layout, name: "Військовий бланк", organisation_id: organisation_id) do
+        nil ->
+          %Layout{}
+          |> Layout.changeset(%{
+            name: "Військовий бланк",
+            description: "Базовий бланк для військових документів",
+            slug: "military-letterhead",
+            engine_id: engine.id,
+            organisation_id: organisation_id,
+            creator_id: creator_id,
+            width: 210.0,
+            height: 297.0,
+            unit: "mm"
+          })
+          |> Repo.insert!()
+
+        existing ->
+          existing
+      end
+
+    # Створюємо або отримуємо theme
+    theme =
+      case Repo.get_by(Theme, name: "Військова тема", organisation_id: organisation_id) do
+        nil ->
+          %Theme{}
+          |> Theme.changeset(%{
+            name: "Військова тема",
+            font: "Roboto",
+            typescale: %{h1: 18, h2: 14, h3: 12, p: 10},
+            body_color: "#000000",
+            primary_color: "#2C5F2D",
+            secondary_color: "#97BC62",
+            organisation_id: organisation_id,
+            creator_id: creator_id
+          })
+          |> Repo.insert!()
+
+        existing ->
+          existing
+      end
+
+    {layout, theme}
   end
 end
 
