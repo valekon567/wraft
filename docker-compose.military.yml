@@ -1,0 +1,227 @@
+version: '3.8'
+
+# Docker Compose конфігурація для військової СЕДО
+# Оптимізовано для роботи в закритій (локальній) мережі
+
+services:
+  frontend:
+    image: quay.io/wraft/wraft-frontend:latest
+    container_name: military_frontend
+    environment:
+      NEXT_PUBLIC_API_HOST: http://backend:4000
+      NEXT_PUBLIC_WEBSOCKET_URL: ws://backend:4000
+    ports:
+      - "3000:3000"
+    networks:
+      - military_network
+    restart: unless-stopped
+    depends_on:
+      - backend
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+        SELF_HOSTED: "true"
+    container_name: military_backend
+    environment:
+      CLOAK_KEY: ${CLOAK_KEY}
+      DATABASE_URL: postgres://${DB_USERNAME}:${DB_PASSWORD}@db:5432/${DB_NAME}?ssl=false
+      GUARDIAN_KEY: ${GUARDIAN_KEY}
+      MINIO_HOST: minio
+      MINIO_PORT: 9000
+      MINIO_BUCKET: ${MINIO_BUCKET:-vch-documents}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+      MINIO_URL: http://minio:9000
+      MIX_ENV: prod
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      SELF_HOSTED: "true"
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY}
+      TYPESENSE_HOST: typesense
+      TYPESENSE_PORT: 8108
+      TYPESENSE_SCHEME: http
+      XELATEX_PATH: xelatex
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:4000}
+      WRAFT_HOSTNAME: ${WRAFT_HOSTNAME:-vch.military.local}
+      # SMTP (опціонально)
+      EMAIL_ADAPTER: ${EMAIL_ADAPTER:-smtp}
+      SMTP_HOST: ${SMTP_HOST:-mail.military.local}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      # Цифровий підпис (опціонально)
+      SIGNING_LOCAL_FILE_PATH: ${SIGNING_LOCAL_FILE_PATH}
+      SIGNING_LOCAL_PASSPHRASE: ${SIGNING_LOCAL_PASSPHRASE}
+      SIGNING_KEY_ALIAS: ${SIGNING_KEY_ALIAS:-1}
+      # Аудит
+      AUDIT_LOG_RETENTION_DAYS: ${AUDIT_LOG_RETENTION_DAYS:-1825}
+    ports:
+      - "4000:4000"
+    volumes:
+      - ./priv/keystore:/app/priv/keystore:ro
+      - backend_logs:/app/logs
+    networks:
+      - military_network
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_started
+      typesense:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  db:
+    image: postgres:14-alpine
+    container_name: military_db
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-vch_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secure_password}
+      POSTGRES_DB: ${DB_NAME:-vch_edo}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups:/backups
+    networks:
+      - military_network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-vch_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Збільшені ресурси для військового використання
+    shm_size: 256mb
+    command: >
+      postgres
+      -c max_connections=200
+      -c shared_buffers=256MB
+      -c effective_cache_size=1GB
+      -c maintenance_work_mem=64MB
+      -c checkpoint_completion_target=0.9
+      -c wal_buffers=16MB
+      -c default_statistics_target=100
+      -c random_page_cost=1.1
+      -c effective_io_concurrency=200
+      -c work_mem=2621kB
+      -c min_wal_size=1GB
+      -c max_wal_size=4GB
+
+  minio:
+    image: quay.io/minio/minio:latest
+    container_name: military_minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      MINIO_SERVER_URL: http://minio:9000
+    volumes:
+      - minio_data:/data
+    networks:
+      - military_network
+    command: minio server /data --console-address ":9001" --address :9000
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  createbucket:
+    image: minio/mc:latest
+    container_name: military_minio_setup
+    environment:
+      MINIO_URL: http://minio:9000
+      MINIO_BUCKET: ${MINIO_BUCKET:-vch-documents}
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    networks:
+      - military_network
+    depends_on:
+      - minio
+    restart: on-failure:5
+    entrypoint: >
+      /bin/sh -c "
+      until /usr/bin/mc config host add myminio http://minio:9000 $${MINIO_ROOT_USER} $${MINIO_ROOT_PASSWORD}; do
+        echo 'Waiting for MinIO...'
+        sleep 2
+      done;
+      /usr/bin/mc mb -p myminio/$${MINIO_BUCKET} || true;
+      /usr/bin/mc anonymous set download myminio/$${MINIO_BUCKET} || true;
+      echo 'MinIO bucket created successfully';
+      exit 0;
+      "
+
+  typesense:
+    image: typesense/typesense:27.1
+    container_name: military_typesense
+    ports:
+      - "8108:8108"
+    environment:
+      TYPESENSE_API_KEY: ${TYPESENSE_API_KEY:-xyz}
+      TYPESENSE_DATA_DIR: /data
+    volumes:
+      - typesense_data:/data
+    networks:
+      - military_network
+    command: >
+      --data-dir /data
+      --api-key=${TYPESENSE_API_KEY:-xyz}
+      --enable-cors
+    restart: unless-stopped
+
+  # Backup сервіс (опціонально, запускається вручну)
+  backup:
+    image: postgres:14-alpine
+    container_name: military_backup
+    environment:
+      PGUSER: ${DB_USERNAME:-vch_user}
+      PGPASSWORD: ${DB_PASSWORD:-secure_password}
+      PGDATABASE: ${DB_NAME:-vch_edo}
+      PGHOST: db
+    volumes:
+      - ./backups:/backups
+    networks:
+      - military_network
+    depends_on:
+      - db
+    profiles:
+      - backup
+    entrypoint: >
+      /bin/sh -c "
+      BACKUP_FILE=/backups/backup_$$(date +%Y%m%d_%H%M%S).sql;
+      echo 'Creating backup: $$BACKUP_FILE';
+      pg_dump -h db -U $$PGUSER $$PGDATABASE > $$BACKUP_FILE;
+      echo 'Backup completed successfully';
+      "
+
+networks:
+  military_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16
+
+volumes:
+  postgres_data:
+    driver: local
+  minio_data:
+    driver: local
+  typesense_data:
+    driver: local
+  backend_logs:
+    driver: local
