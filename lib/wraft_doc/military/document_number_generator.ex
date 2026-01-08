@@ -28,19 +28,19 @@ defmodule WraftDoc.Military.DocumentNumberGenerator do
   @spec generate_number(String.t(), integer()) :: String.t()
   def generate_number(prefix, year \\ nil) do
     year = year || Date.utc_today().year
-    counter_name = "#{prefix}_#{year}"
+    counter_subject = "#{prefix}_#{year}"
 
     # Отримуємо або створюємо лічильник для цього типу документа та року
     counter =
-      case Repo.get_by(Counter, name: counter_name) do
+      case Repo.get_by(Counter, subject: counter_subject) do
         nil ->
           %Counter{}
-          |> Counter.changeset(%{name: counter_name, count: 1})
+          |> Counter.changeset(%{subject: counter_subject, count: 1})
           |> Repo.insert!()
 
         existing_counter ->
           existing_counter
-          |> Counter.changeset(%{count: existing_counter.count + 1})
+          |> Counter.update_changeset(%{count: existing_counter.count + 1})
           |> Repo.update!()
       end
 
@@ -55,9 +55,9 @@ defmodule WraftDoc.Military.DocumentNumberGenerator do
   @spec current_number(String.t(), integer()) :: String.t() | nil
   def current_number(prefix, year \\ nil) do
     year = year || Date.utc_today().year
-    counter_name = "#{prefix}_#{year}"
+    counter_subject = "#{prefix}_#{year}"
 
-    case Repo.get_by(Counter, name: counter_name) do
+    case Repo.get_by(Counter, subject: counter_subject) do
       nil ->
         nil
 
@@ -75,10 +75,10 @@ defmodule WraftDoc.Military.DocumentNumberGenerator do
     prefixes = ["НАК", "СЗ", "РАП", "ЗВТ", "ВИХ", "ВХ"]
 
     Enum.each(prefixes, fn prefix ->
-      counter_name = "#{prefix}_#{year}"
+      counter_subject = "#{prefix}_#{year}"
 
       # Видаляємо старий лічильник, якщо існує
-      case Repo.get_by(Counter, name: counter_name) do
+      case Repo.get_by(Counter, subject: counter_subject) do
         nil -> :ok
         counter -> Repo.delete(counter)
       end
