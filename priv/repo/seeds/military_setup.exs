@@ -26,6 +26,7 @@ defmodule WraftDoc.Seeds.MilitarySetup do
   @doc """
   Головна функція для налаштування військової системи.
   """
+  @spec run() :: :ok
   def run do
     Logger.info("🎖️  Початок налаштування військової СЕДО...")
 

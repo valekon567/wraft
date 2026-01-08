@@ -14,8 +14,18 @@ defmodule WraftDoc.Military.DocumentNumberGenerator do
   alias WraftDoc.Documents.Counter
   alias WraftDoc.Repo
 
+  # Regex для парсингу номерів документів
+  @document_number_regex ~r/^([А-ЯІЇЄ]+)-(\d+)\/(\d{4})$/
+
   @doc """
   Генерує наступний номер документа для заданого типу та року.
+
+  ## Примітка
+  Поточна реалізація має потенційну race condition при одночасних запитах.
+  Для production середовища рекомендується використовувати:
+  - Database-level atomic operations (PostgreSQL sequences)
+  - Transaction з advisory locks
+  - Distributed lock manager (Redis, etcd)
 
   ## Приклади
 
@@ -100,7 +110,7 @@ defmodule WraftDoc.Military.DocumentNumberGenerator do
   """
   @spec parse_number(String.t()) :: {:ok, map()} | {:error, atom()}
   def parse_number(document_number) do
-    case Regex.run(~r/^([А-ЯІЇЄ]+)-(\d+)\/(\d{4})$/, document_number) do
+    case Regex.run(@document_number_regex, document_number) do
       [_, prefix, number, year] ->
         {:ok,
          %{

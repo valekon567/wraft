@@ -14,11 +14,15 @@ defmodule WraftDocWeb.SubdivisionController do
   GET /api/v1/subdivisions
   """
   def index(conn, _params) do
-    current_user = conn.assigns[:current_user]
-    organisation_id = current_user.current_org_id
+    case conn.assigns[:current_user] do
+      nil ->
+        {:error, :unauthorized}
 
-    subdivisions = Military.list_subdivisions(organisation_id)
-    render(conn, "index.json", subdivisions: subdivisions)
+      current_user ->
+        organisation_id = current_user.current_org_id
+        subdivisions = Military.list_subdivisions(organisation_id)
+        render(conn, "index.json", subdivisions: subdivisions)
+    end
   end
 
   @doc """
@@ -40,23 +44,28 @@ defmodule WraftDocWeb.SubdivisionController do
   POST /api/v1/subdivisions
   """
   def create(conn, %{"subdivision" => subdivision_params}) do
-    current_user = conn.assigns[:current_user]
-    organisation_id = current_user.current_org_id
+    case conn.assigns[:current_user] do
+      nil ->
+        {:error, :unauthorized}
 
-    subdivision_params =
-      subdivision_params
-      |> Map.put("organisation_id", organisation_id)
+      current_user ->
+        organisation_id = current_user.current_org_id
 
-    case Military.create_subdivision(subdivision_params) do
-      {:ok, subdivision} ->
-        subdivision = Military.get_subdivision_with_preloads(subdivision.id)
+        subdivision_params =
+          subdivision_params
+          |> Map.put("organisation_id", organisation_id)
 
-        conn
-        |> put_status(:created)
-        |> render("show.json", subdivision: subdivision)
+        case Military.create_subdivision(subdivision_params) do
+          {:ok, subdivision} ->
+            subdivision = Military.get_subdivision_with_preloads(subdivision.id)
 
-      {:error, changeset} ->
-        {:error, changeset}
+            conn
+            |> put_status(:created)
+            |> render("show.json", subdivision: subdivision)
+
+          {:error, changeset} ->
+            {:error, changeset}
+        end
     end
   end
 
@@ -115,10 +124,14 @@ defmodule WraftDocWeb.SubdivisionController do
   GET /api/v1/subdivisions/roots
   """
   def roots(conn, _params) do
-    current_user = conn.assigns[:current_user]
-    organisation_id = current_user.current_org_id
+    case conn.assigns[:current_user] do
+      nil ->
+        {:error, :unauthorized}
 
-    roots = Military.get_root_subdivisions(organisation_id)
-    render(conn, "index.json", subdivisions: roots)
+      current_user ->
+        organisation_id = current_user.current_org_id
+        roots = Military.get_root_subdivisions(organisation_id)
+        render(conn, "index.json", subdivisions: roots)
+    end
   end
 end

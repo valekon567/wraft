@@ -18,6 +18,15 @@ defmodule WraftDoc.Seeds.MilitaryContentTypes do
     text_type = Repo.get_by(FieldType, name: "Text")
     date_type = Repo.get_by(FieldType, name: "Date")
 
+    # Перевіряємо, що всі необхідні типи полів існують
+    unless string_type && text_type && date_type do
+      raise """
+      Базові типи полів не знайдено в базі даних!
+      Запустіть спочатку основний seed файл:
+        mix run priv/repo/seeds.exs
+      """
+    end
+
     content_types = [
       %{
         name: "Наказ по частині",
